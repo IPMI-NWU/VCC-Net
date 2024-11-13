@@ -74,11 +74,9 @@ def main(args):
     dataset_val = build_dataset(args.dataset_name, 'test', args.size)
     print('Number of validation images: {}'.format(len(dataset_val)))
     dataloader_train = DataLoader(dataset_train, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
-    dataloader_val = DataLoader(dataset_val, batch_size=1, shuffle=False, num_workers=args.num_workers)
     # -------------------------------------------------------
     print("Start training")
     start_time = time.time()
-    best_acc = None
     print_freq = 50
     for epoch in range(0, args.epochs):
         print('-' * 40)
@@ -124,55 +122,13 @@ def main(args):
         print('Training time: {} ({:.4f} r / it )'.format(total_time_str, train_total_time / len(dataloader_train)))
         writer.add_scalar('loss', loss.item(), epoch)
         lr_scheduler.step()
-        # ------------------------------------------------------------
-        # evaluate
-        # ------------------------------------------------------------
+        
         if (epoch + 1) % 10 == 0:
-            model.eval()
-            pred_list = []
-            label_list = []
-            print('Val...')
-            val_start_time = time.time()
-            for img, gaze, label, _ in dataloader_val:
-                # ------------------------------------------------------------
-                img = img.to(device)
-                label = label.to(device)
-                # ------------------------------------------------------------
-                output = model(img)
-                loss = criterion_cls(output, label)
-                # ------------------------------------------------------------
-                _, pred = torch.max(output, 1)
-                pred_list.append(pred.cpu().detach().numpy().tolist())
-                label_list.append(label.cpu().detach().numpy().tolist())
             # ------------------------------------------------------------
-            val_total_time = time.time() - val_start_time
-            total_time_str = str(datetime.timedelta(seconds=int(val_total_time)))
-            print('Val time: {} ({:.4f} r / it )'.format(total_time_str, val_total_time / len(dataloader_val)))
-            pred_list = [b for a in pred_list for b in a]
-            label_list = [b for a in label_list for b in a]
-            acc_score = accuracy_score(pred_list, label_list)
-            print('Val Acc: {:.4f}  Val loss: {:.4f}'.format(acc_score, loss.item()))
-            cm = confusion_matrix(pred_list, label_list)
-            print(cm)
-            writer.add_scalar('val_loss', loss.item(), epoch)
-            writer.add_scalar('val_acc', acc_score, epoch)
-            # ------------------------------------------------------------
-            # save checkpoint for high dice score
+            # save checkpoint
             # ------------------------------------------------------------
             if args.output_dir:
                 checkpoint_paths = [output_dir / 'checkpoint.pth']
-                if best_acc is None or acc_score > best_acc:
-                    best_acc = acc_score
-                    print("Update best model!")
-                    checkpoint_paths.append(output_dir / 'best_checkpoint.pth')
-                # You can change the threshold
-                if acc_score > 0.60:
-                    print("Update high dice score model!")
-                    file_name = str(acc_score)[0:6] + '_' + str(epoch + 1) + '_checkpoint.pth'
-                    checkpoint_paths.append(output_dir / file_name)
-                # extra checkpoint before LR drop and every 100 epochs
-                if (epoch + 1) % args.lr_drop == 0 or (epoch + 1) % 100 == 0:
-                    checkpoint_paths.append(output_dir / f'checkpoint{epoch:04}.pth')
                 for checkpoint_path in checkpoint_paths:
                     misc.save_on_master({
                         'model': model.state_dict(),
