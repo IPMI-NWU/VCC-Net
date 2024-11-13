@@ -35,12 +35,8 @@ def infer_cls():
     model = VCGGNN(label_num)
 
     base = "output/SIIM_exp_2e4_10_3/"
-    model_path = base + "0.884_200_checkpoint.pth"
+    model_path = base + "xxx_checkpoint.pth"
     # -------------------------------------------------------
-
-    output_dir = base + "Attention map/"
-    output_soft_dir = base + "Soft attention/"
-    output_hard_dir = base + "Hard attention/"
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -74,41 +70,6 @@ def infer_cls():
         hard_attention = model.get_hard_attention()
         _, pred = torch.max(output, 1)
         pred_score = torch.nn.Softmax(dim=1)(output)
-        # -------------------------------------------------------
-        # soft attention map
-        # -------------------------------------------------------
-        mse_loss = torch.nn.MSELoss()(soft_attention / 10., gaze)
-        mse += mse_loss.item()
-        soft_attention = (soft_attention - soft_attention.min()) / (soft_attention.max() - soft_attention.min())
-        soft_attention = np.array(soft_attention[0][0].detach().cpu()) * 255
-        output_img = Image.fromarray(soft_attention).convert('L')
-        name = img_path[0].split('/')[-1]
-        output_img.save(output_soft_dir + name)
-        # -------------------------------------------------------
-        # hard attention map
-        # -------------------------------------------------------
-        hard_attention = torch.argmax(hard_attention, dim=1, keepdim=True)
-        hard_attention = np.array(hard_attention[0][0].detach().cpu()).astype(np.uint8) * 255
-        output_img = Image.fromarray(hard_attention).convert('L')
-        output_img.save(output_hard_dir + name)
-        # -------------------------------------------------------
-        # attention map
-        # -------------------------------------------------------
-        # print(model.classifier.backbone)
-        target_layer = [model.classifier.backbone[-1][1].fc1[0]]
-        # target_layer = [model.classifier.prediction[0]]
-        cam = GradCAMPlusPlus(model=model, target_layers=target_layer)
-        targets = [ClassifierOutputTarget(label.item())]
-        grayscale_cam = cam(input_tensor=img, targets=targets)
-        grayscale_cam = grayscale_cam[0, :]
-
-        img = Image.open(img_path[0]).resize((size, size))
-        img_float_np = np.float32(img) / 255.
-        img_float_np = np.expand_dims(img_float_np, axis=-1).repeat(3, axis=-1)
-
-        cam_image = show_cam_on_image(img_float_np, grayscale_cam, use_rgb=True)
-        cam_image = Image.fromarray(cam_image)
-        cam_image.save(output_dir + img_name)
         # -------------------------------------------------------
         # append to list
         # -------------------------------------------------------
