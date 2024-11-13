@@ -163,23 +163,6 @@ def infer_cls():
     cm = confusion_matrix(label_list, pred_list)
     print(cm)
 
-    if dataset_name == 'SIIM' or dataset_name == 'TB':
-        auc_score = metrics.roc_auc_score(label_list, pred_score_list)
-        print('AUC        : {:.4f}'.format(auc_score))
-    else:
-        gt = np.array(gt)
-        pd = np.array(pd)
-        gt = label_binarize(np.array(gt), classes=[0, 1, 2])
-        fpr = dict()
-        tpr = dict()
-        roc_auc = []
-        for i in range(3):
-            fpr[i], tpr[i], _ = roc_curve(gt[:, i], pd[:, i])
-            roc_auc.append(auc(fpr[i], tpr[i]))
-        aucavg = np.mean(roc_auc)
-        print("AUC: {}".format(roc_auc))
-        print("Avg AUC: {}".format(aucavg))
-
 
 
 if __name__ == '__main__':
