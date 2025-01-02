@@ -6,8 +6,8 @@ This project contains the training and testing code for the paper, as well as th
 ![](./Fig/method.png)
 
 ## Qualitative Results
-![](Fig/result1.png)
-![](Fig/result2.png)
+![1.0](Fig/result1.png)
+![1.0](Fig/result2.png)
 
 
 ## Model Weights
@@ -22,10 +22,12 @@ Code: 7777
 * The EGD-CXR dataset can be downloaded from [EGD-CXR](https://physionet.org/content/egd-cxr/1.0.0/) .
 
 ## Requirements
-* python 3.8 <br>
-* torch 1.12.0<br>
-* numpy 1.24.4<br>
-* medpy 0.5.1<br>
-* nibabel 5.2.1<br>
-* pandas 2.0.3<br>
-* scikit-image 0.21.0<br>
+```
+python == 3.8
+torch == 1.12.0
+numpy == 1.24.4
+medpy == 0.5.1
+nibabel == 5.2.1
+pandas == 2.0.3
+scikit-image == 0.21.0
+```
