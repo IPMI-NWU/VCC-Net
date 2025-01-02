@@ -6,8 +6,8 @@ This project contains the training and testing code for the paper, as well as th
 ![](./Fig/method.png)
 
 ## Qualitative Results
-![1.0](Fig/result1.png)
-![1.0](Fig/result2.png)
+![](Fig/result1.png)
+![](Fig/result2.png)
 
 
 ## Model Weights
