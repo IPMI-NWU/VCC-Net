@@ -13,7 +13,6 @@ from tensorboardX import SummaryWriter
 from a_Data import misc
 from c_VCGGNN.dataset import build_dataset
 from c_VCGGNN.models.vcggnn.vcggnn import VCGGNN
-
 from c_VCGGNN.util.loss import DiceLoss
 
 
@@ -26,7 +25,7 @@ def get_args_parser():
     parser.add_argument('--lr_drop', default=50, type=int)
     parser.add_argument('--in_channels', default=1, type=int)
     parser.add_argument('--size', default=224, type=int)
-    parser.add_argument('--output_dir', default='output/TB_exp_e4_5/', help='path where to save')
+    parser.add_argument('--output_dir', default='output/exp/', help='path where to save')
     parser.add_argument('--dataset_name', default='TB', help='SIIM, MIMIC, TB, COVID')
     parser.add_argument('--label_num', default=2, help='2, 3, 2, 3', type=int)
     parser.add_argument('--device', default='cuda', type=str, help='device to use for training / testing')
@@ -48,15 +47,12 @@ def main(args):
     device = torch.device(args.device)
     # -------------------------------------------------------
     model = VCGGNN(args.label_num)
-    # model.load_state_dict(torch.load('output/TB_exp_e4_2/0.9045_145_checkpoint.pth')['model'])
     # -------------------------------------------------------
     output_dir = Path(args.output_dir)
     model.to(device)
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print('number of params:', n_parameters)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    # optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-    # lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_drop)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_drop, gamma=0.5)
     print('Building training dataset...')
     dataset_train = build_dataset(args.dataset_name, 'train', args.size)
