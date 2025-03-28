@@ -105,7 +105,7 @@ def main(args):
             loss_reg = criterion_reg(soft_attention, gaze * 10.)
             loss_seg = criterion_seg(hard_attention, hard_gaze)
             loss_cons = criterion_reg(con_feature_dist, con_attention_dist)
-            loss = loss_cls + 1.0 * (loss_aux_cls + loss_reg + loss_seg) + 1.0 * loss_cons
+            loss = loss_cls + 0.5 * (loss_aux_cls + loss_reg + loss_seg) + 0.5 * loss_cons
             # ------------------------------------------------------------
             optimizer.zero_grad()
             loss.backward()
