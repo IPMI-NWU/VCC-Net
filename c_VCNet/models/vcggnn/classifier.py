@@ -70,16 +70,11 @@ class Grapher(nn.Module):
         )
 
     def forward(self, x):
-        #  8 x 48 x 56 x 56
         x, attention = x[0], x[1]
         _tmp = x
-        #  8 x 48 x 56 x 56
         x = self.fc1(x)
-        #  8 x 96 x 56 x 56
         x = self.graph_conv(x, attention)
-        #  8 x 48 x 56 x 56
         x = self.fc2(x)
-        #  8 x 48 x 56 x 56
         x = x + _tmp
         return x, attention
 
@@ -132,27 +127,20 @@ class MRConv2d(nn.Module):
         self.nn = BasicConv([in_channels * 2, out_channels])
 
     def forward(self, x, edge_index, y=None):
-        # b x 48 x 3136 x 9
         x_i = batched_index_select(x, edge_index[1])
         if y is not None:
-            # b x 48 x 3136 x 9
             x_j = batched_index_select(y, edge_index[0])
         else:
             x_j = batched_index_select(x, edge_index[0])
-        # b x 48 x 3136 x 1
         x_j, _ = torch.max(x_j - x_i, -1, keepdim=True)
         b, c, n, _ = x.shape
-        # b x 96 x 3136 x 1
         x = torch.cat([x.unsqueeze(2), x_j.unsqueeze(2)], dim=2).reshape(b, 2 * c, n, _)
-        # b x 96 x 3136 x 1
         x = self.nn(x)
         return x
 
 
 class DyGraphConv2d(GraphConv2d):
     def __init__(self, in_channels, out_channels, kernel_size=9, dilation=1, r=1):
-        # [48, 96, 240, 384][i], 48 x 2, 9, 1, 'mr', 'gelu'
-        # 'batch', True, False, 0.2, [4, 2, 1, 1][i]
         super(DyGraphConv2d, self).__init__(in_channels, out_channels)
         self.r = r
         self.dilated_knn_graph = DenseDilatedKnnGraph(kernel_size, dilation)
@@ -162,20 +150,14 @@ class DyGraphConv2d(GraphConv2d):
         y = None
         attention_y = None
         if self.r > 1:
-            # n x 48 x 14 x 14
             y = F.avg_pool2d(x, self.r, self.r)
-            # n x 48 x 196 x 1
             y = y.reshape(B, C, -1, 1).contiguous()
             attention_y = F.max_pool2d(attention, self.r, self.r)
             attention_y = attention_y.reshape(B, 1, -1, 1).contiguous()
-        # n x 48 x 3136 x 1
         x = x.reshape(B, C, -1, 1).contiguous()
         attention = attention.reshape(B, 1, -1, 1).contiguous()
-        # 2 x n x 3136 x 9
         edge_index = self.dilated_knn_graph(x, y, attention, attention_y)
-        # n x 96 x 3136 x 1
         x = super(DyGraphConv2d, self).forward(x, edge_index, y)
-        # n x 96 x 56 x 56
         return x.reshape(B, -1, H, W).contiguous()
 
 
@@ -192,13 +174,8 @@ class DenseDilatedKnnGraph(nn.Module):
             y = F.normalize(y, p=2.0, dim=1)
             edge_index = xy_dense_knn_matrix(x, y, attention, attention_y, self.k * self.dilation)
         else:
-            # normalize,对每一个特征向量正则化, 对每一向量除以向量的2范数, x1 = x1 / sqrt(x1^2, x2^2, ..., xn^2)
             x = F.normalize(x, p=2.0, dim=1)
             edge_index = dense_knn_matrix(x, attention, self.k * self.dilation)
-            # print(edge_index.shape)
-            # print(edge_index[:, 0, 11, :], torch.min(edge_index))
-            # print()
-        # print(self._dilated(edge_index).shape)
         return self._dilated(edge_index)
 
 
@@ -242,15 +219,6 @@ def dense_knn_matrix(x, attention, k=16):
         con_attention_dist = attention_norm
         weight = 2.0
         dist = dist_norm + weight * attention_norm
-        # ----------------------------------------------------------------------
-        # _, g_nn_idx = torch.topk(-attention_dist, k=k)
-        # g_edge_index = torch.stack(
-        #     (g_nn_idx, torch.arange(0, n_points, device=x.device).repeat(batch_size, k, 1).transpose(2, 1)), dim=0)
-        # print('gaze distance')
-        # print(attention_dist[0, index, :])
-        # print(g_edge_index.shape)
-        # print(g_edge_index[:, 0, index, :], torch.min(g_edge_index))
-        # print()
         # ---------------------------------------------------------------------------
         _, nn_idx = torch.topk(-dist, k=k)  # b, n, k
         center_idx = torch.arange(0, n_points, device=x.device).repeat(batch_size, k, 1).transpose(2, 1)
@@ -269,12 +237,12 @@ def xy_dense_knn_matrix(x, y, attention, attention_y, k=16):
         dist = xy_pairwise_distance(x.detach(), y.detach())
         attention_dist = xy_pairwise_distance(attention.detach(), attention_y.detach()) * 1.
 
-        # ------------------------------dist进行归一化----------------------------------------
+        # ------------------------------dist----------------------------------------
         max_values, _ = torch.max(dist.reshape([dist.shape[0], -1]), dim=1, keepdim=True)
         min_values, _ = torch.min(dist.reshape([dist.shape[0], -1]), dim=1, keepdim=True)
         max_values, min_values = max_values.unsqueeze(-1), min_values.unsqueeze(-1)
         dist_norm = (dist - min_values) / (max_values - min_values)
-        # ------------------------------attention进行归一化----------------------------------------
+        # ------------------------------attention----------------------------------------
         max_values, _ = torch.max(attention_dist.reshape([attention_dist.shape[0], -1]), dim=1, keepdim=True)
         min_values, _ = torch.min(attention_dist.reshape([attention_dist.shape[0], -1]), dim=1, keepdim=True)
         max_values, min_values = max_values.unsqueeze(-1), min_values.unsqueeze(-1)
@@ -347,43 +315,16 @@ class VisualGuidedClassifier(torch.nn.Module):
     def forward(self, inputs):
         inputs, attention = inputs[0], inputs[1]
         inputs = inputs.repeat(1, 3, 1, 1)
-        # b x 48 x 56 x 56
-        # pos_embed 1 x 48 x 56 x 56
         attention = self.attention_down4(attention)
         x = self.stem(inputs) + self.pos_embed
-        # blocks = [2, 2, 6, 2]
-        # channels = [48, 96, 240, 384]
-        # b x 48 x 56 x 56 -> b x 96 x 28 x 28 -> b x 240 x 14 x 14 -> b x 384 x 7 x 7
         for i in range(len(self.backbone)):
             x, attention = self.backbone[i]([x, attention])
-        # b x 384 x 7 x 7 -> b x 384 x 1 x 1
         x = F.adaptive_avg_pool2d(x, 1)
-        # b x 384 x 1 x 1 -> b x 1024 x 1 x 1 -> b x n_classes
         x = self.prediction(x)
         x = self.pred2(x).squeeze(-1).squeeze(-1)
         return x
 
     def get_dist(self):
         return con_feature_dist, con_attention_dist
-
-if __name__ == '__main__':
-    model = VisualGuidedClassifier(num_classes=2)
-    # save_model = torch.load('../pretrained_models/pvig_s_82.1.pth.tar')
-    # model_dict = model.state_dict()
-    # state_dict = {k: v for k, v in save_model.items() if k in model_dict.keys()}
-    # model_dict.update(state_dict)
-    # model.load_state_dict(model_dict)
-
-    input = torch.rand(8, 1, 224, 224)
-    attention = torch.rand(8, 1, 224, 224)
-    output = model(torch.stack([input, attention], dim=0))
-    # print(output)
-    # print(model)
-    n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print('number of params:', n_parameters)
-
-    a, b = model.get_dist()
-    print(a, b)
-    loss_fun = torch.nn.MSELoss()
     loss = loss_fun(a, b)
     print(loss)
