@@ -11,7 +11,7 @@ from pathlib import Path
 import torch
 from tensorboardX import SummaryWriter
 from a_Data import misc
-from b_Classification.dataset import build_dataset
+from c_VCGGNN.dataset import build_dataset
 from c_VCGGNN.models.vcggnn.vcggnn import VCGGNN
 
 from c_VCGGNN.util.loss import DiceLoss
