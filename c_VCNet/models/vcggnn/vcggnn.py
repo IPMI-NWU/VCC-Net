@@ -23,8 +23,6 @@ class VCGGNN(nn.Module):
         model_dict.update(state_dict)
         self.classifier.load_state_dict(model_dict)
 
-
-
     def forward(self, x):
         _, soft_attention, hard_attention, aux_cls  = self.generator(x)
         self.soft_attention = soft_attention
@@ -44,39 +42,3 @@ class VCGGNN(nn.Module):
 
     def get_distance(self):
         return self.classifier.get_dist()
-
-
-if __name__ == '__main__':
-    model = VCGGNN(2)
-    input = torch.rand(8, 1, 224, 224)
-    pred = model(input)
-    soft_attention = model.get_soft_attention()
-    hard_attention = model.get_hard_attention()
-    aux_cls = model.get_aux_cls()
-    print(pred.shape)
-    print(soft_attention.shape, hard_attention.shape, aux_cls.shape)
-    print(torch.max(soft_attention), torch.max(hard_attention), torch.max(aux_cls))
-    print(torch.min(soft_attention), torch.min(hard_attention), torch.min(aux_cls))
-    n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print('number of params:', n_parameters)
-
-    con_feature_dist, con_attention_dist = model.get_distance()
-    print(con_feature_dist.shape, con_attention_dist.shape)
-
-    # -------------------------------------------------------
-    test_dir = '../../../Data/SIIM-ACR-Gaze/test'
-    csv_path = '../../../Data/SIIM-ACR-Gaze/siim_pneumothorax.csv'
-    # dataset_test = DatasetGaze_e2e(test_dir, csv_path, 'test', 224)
-    # dataloader_test = DataLoader(dataset_test, batch_size=1, shuffle=False, num_workers=1)
-    # model = ViG_ViGUNet(num_classes=2)
-    # device = torch.device('cuda')
-    # base = "../../output/exp_vig_vigunet_12/"
-    # model_path = base + "0.872.pth"
-    # model.load_state_dict(torch.load(model_path)['model'])
-    # model.eval().to(device)
-    # for img, gaze_pred, label, path in dataloader_test:
-    #     if path[0].split('/')[-1] == '1.2.276.0.7230010.3.1.4.8323329.2239.1517875171.766942.png':
-    #         print(path[0])
-    #         img = img.to(device)
-    #         output = model(img)
-    #         print(output)
