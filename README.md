@@ -20,6 +20,14 @@ The attention maps produced by VCC-Net exhibit strong concordance with radiologi
 ![1.0](Fig/result1.png)
 ![1.0](Fig/result2.png)
 
+## Ablation of Hyperparameters
+<div align="center">
+<img src="https://github.com/IPMI-NWU/VCC-Net/blob/main/Fig/alpha.png" width="400px">
+</div>
+
+Ablation study for the parameter α, which controls the weight of visual attention distance in graph construction.
+When α was set too low (0 or 0.1), the model relied predominantly on learned features, leading to suboptimal results. Conversely, when α was high (5.0 or 10.0), feature influence was diminished, also restricting model performance. The optimal synergy between features and human cognition occurred at α = 2, yielding significant performance improvements.
+
 
 ## Model Weights
 > The download links and extraction codes for our model weights are as follows：
