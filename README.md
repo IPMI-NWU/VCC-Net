@@ -1,4 +1,4 @@
-# Following the Trace: Radiologists’ Visual Cognition-guided Cooperative Network for Medical Image Diagnosis
+# Following the Diagnostic Trace: Visual Cognition-guided Cooperative Network for Chest X-Ray Diagnosis
 
 > This project contains the training and testing code for the paper, as well as the model weights trained according to our algorithm
 > 
